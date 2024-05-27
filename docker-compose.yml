@@ -413,6 +413,7 @@ services:
             - AUTOSCALER_SIDECAR_REGION
             - AUTOSCALER_SIDECAR_SHUTDOWN_POLLING_INTERVAL
             - AUTOSCALER_SIDECAR_STATS_POLLING_INTERVAL
+            - AUTOSCALER_URL=http://localhost:3000
             - DOCKER_HOST_ADDRESS
             - ENABLE_COLIBRI_WEBSOCKET
             - ENABLE_JVB_XMPP_SERVER
@@ -455,6 +456,46 @@ services:
             - XMPP_PORT
         depends_on:
             - prosody
+            - autoscaler
+        networks:
+            meet.jitsi:
+
+    redis:
+        image: "redis:alpine"
+        command: redis-server /usr/local/etc/redis/redis.conf --requirepass "${REDIS_PASSWORD}"
+        ports:
+            - '6379:6379'
+        volumes:
+            - ${CONFIG}/redis/data:/var/lib/redis:Z
+            - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:Z
+        networks:
+            meet.jitsi:
+
+    autoscaler:
+        image: jitsi/autoscaler:latest
+        ports:
+            - "3000:3000"
+        environment:
+            - LOG_LEVEL=debug
+            - REDIS_PASSWORD
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+            - REDIS_TLS=false
+            - PORT=3000
+            - PROTECTED_API=false
+            - ASAP_PUB_KEY_BASE_URL=null
+            - ASAP_JWT_AUD=jitsi-autoscaler
+            - ASAP_JWT_ACCEPTED_HOOK_ISS=jitsi-autoscaler-sidecar
+            - GROUP_CONFIG_FILE=/config/groups.json
+            - CLOUD_PROVIDER=custom
+            - DRY_RUN=true
+            # Config values to make autoscaler starting
+            - DEFAULT_INSTANCE_CONFIGURATION_ID=ocid1.instanceconfiguration.oc1.phx.demo
+            - DEFAULT_COMPARTMENT_ID=ocid1.compartment.oc1.demo
+        volumes:
+            - ${CONFIG}/autoscaler:/config:Z
+        depends_on:
+            - redis
         networks:
             meet.jitsi:
 
