@@ -43,7 +43,7 @@ fi
 # check for AUTOSCALER_URL, AUTOSCALER_SIDECAR_KEY_FILE and AUTOSCALER_SIDECAR_KEY_ID as indicator that sidecar should be enabled
 if [ -n "$AUTOSCALER_URL" ]; then
     if [ -z "$AUTOSCALER_SIDECAR_KEY_FILE" ]; then
-        export AUTOSCALER_SIDECAR_KEY_FILE="/etc/jitsi/autoscaler-sidecar/asap.pem"
+        export AUTOSCALER_SIDECAR_KEY_FILE="/etc/jitsi/autoscaler-sidecar/asap.key"
     fi
     if [ -z "$AUTOSCALER_SIDECAR_KEY_ID" ]; then
         # assume key id is equal to the base real path of the key file minus .pem

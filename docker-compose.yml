@@ -404,7 +404,7 @@ services:
         volumes:
             - ${CONFIG}/jvb:/config:Z
         environment:
-            - AUTOSCALER_SIDECAR_KEY_FILE
+            - AUTOSCALER_SIDECAR_KEY_FILE=/etc/jitsi/autoscaler-sidecar/asap.key
             - AUTOSCALER_SIDECAR_KEY_ID
             - AUTOSCALER_SIDECAR_GROUP_NAME
             - AUTOSCALER_SIDECAR_HOST_ID
@@ -413,7 +413,7 @@ services:
             - AUTOSCALER_SIDECAR_REGION
             - AUTOSCALER_SIDECAR_SHUTDOWN_POLLING_INTERVAL
             - AUTOSCALER_SIDECAR_STATS_POLLING_INTERVAL
-            - AUTOSCALER_URL=http://localhost:3000
+            - AUTOSCALER_URL=http://autoscaler:3000
             - DOCKER_HOST_ADDRESS
             - ENABLE_COLIBRI_WEBSOCKET
             - ENABLE_JVB_XMPP_SERVER
@@ -446,7 +446,7 @@ services:
             - SENTRY_DSN="${JVB_SENTRY_DSN:-0}"
             - SENTRY_ENVIRONMENT
             - SENTRY_RELEASE
-            - COLIBRI_REST_ENABLED
+            - COLIBRI_REST_ENABLED=true
             - SHUTDOWN_REST_ENABLED
             - TZ
             - VIDEOBRIDGE_MAX_MEMORY
