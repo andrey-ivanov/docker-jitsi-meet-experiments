@@ -23,7 +23,7 @@ services:
             - CHROME_EXTENSION_BANNER_JSON
             - COLIBRI_WEBSOCKET_PORT
             - COLIBRI_WEBSOCKET_JVB_LOOKUP_NAME
-            - COLIBRI_WEBSOCKET_REGEX
+            - COLIBRI_WEBSOCKET_REGEX=${COLIBRI_WEBSOCKET_REGEX:-\d+\.\d+\.\d+\.\d+}
             - CONFCODE_URL
             - CORS_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN
             - DEFAULT_LANGUAGE
@@ -164,11 +164,11 @@ services:
             - VIDEOQUALITY_BITRATE_AV1_ULTRA
             - VIDEOQUALITY_BITRATE_AV1_SS_HIGH
             - VIDEOQUALITY_PREFERRED_CODEC
-            - XMPP_AUTH_DOMAIN
-            - XMPP_BOSH_URL_BASE
+            - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+auth.}${XMPP_DOMAIN:-auth.meet.jitsi}}
+            - XMPP_BOSH_URL_BASE=${XMPP_BOSH_URL_BASE:-http://prosody:5280}
             - XMPP_DOMAIN
             - XMPP_GUEST_DOMAIN
-            - XMPP_MUC_DOMAIN
+            - XMPP_MUC_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+muc.}${XMPP_DOMAIN:-muc.meet.jitsi}}
             - XMPP_RECORDER_DOMAIN
             - XMPP_PORT
             - WHITEBOARD_ENABLED
@@ -176,14 +176,15 @@ services:
         networks:
             meet.jitsi:
         depends_on:
-            - jvb
+            - prosody
 
     # XMPP server
     prosody:
         image: jitsi/prosody:${JITSI_IMAGE_VERSION:-unstable}
         restart: ${RESTART_POLICY:-unless-stopped}
+        ports:
+            - '5222:${XMPP_PORT:-5222}'
         expose:
-            - '${XMPP_PORT:-5222}'
             - '${PROSODY_S2S_PORT:-5269}'
             - '5347'
             - '${PROSODY_HTTP_PORT:-5280}'
@@ -293,10 +294,10 @@ services:
             - XMPP_BREAKOUT_MUC_MODULES
             - XMPP_CONFIGURATION
             - XMPP_DOMAIN
-            - XMPP_AUTH_DOMAIN
+            - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+auth.}${XMPP_DOMAIN:-auth.meet.jitsi}}
             - XMPP_GUEST_DOMAIN
-            - XMPP_MUC_DOMAIN
-            - XMPP_INTERNAL_MUC_DOMAIN
+            - XMPP_MUC_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+muc.}${XMPP_DOMAIN:-muc.meet.jitsi}}
+            - XMPP_INTERNAL_MUC_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+internal-muc.}${XMPP_DOMAIN:-internal-muc.meet.jitsi}}
             - XMPP_LOBBY_MUC_MODULES
             - XMPP_MODULES
             - XMPP_MUC_MODULES
@@ -371,7 +372,7 @@ services:
             - MAX_BRIDGE_PARTICIPANTS
             - OCTO_BRIDGE_SELECTION_STRATEGY
             - PROSODY_VISITORS_MUC_PREFIX
-            - SENTRY_DSN="${JICOFO_SENTRY_DSN:-0}"
+            - SENTRY_DSN=${JICOFO_SENTRY_DSN:-0}
             - SENTRY_ENVIRONMENT
             - SENTRY_RELEASE
             - TZ
@@ -381,11 +382,11 @@ services:
             - VISITORS_XMPP_SERVER
             - VISITORS_XMPP_DOMAIN
             - XMPP_DOMAIN
-            - XMPP_AUTH_DOMAIN
-            - XMPP_INTERNAL_MUC_DOMAIN
-            - XMPP_MUC_DOMAIN
+            - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+auth.}${XMPP_DOMAIN:-auth.meet.jitsi}}
+            - XMPP_INTERNAL_MUC_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+internal-muc.}${XMPP_DOMAIN:-internal-muc.meet.jitsi}}
+            - XMPP_MUC_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+muc.}${XMPP_DOMAIN:-muc.meet.jitsi}}
             - XMPP_RECORDER_DOMAIN
-            - XMPP_SERVER
+            - XMPP_SERVER=${XMPP_SERVER:-prosody}
             - XMPP_PORT
             - MAX_SSRCS_PER_USER
             - MAX_SSRC_GROUPS_PER_USER
@@ -400,41 +401,45 @@ services:
         restart: ${RESTART_POLICY:-unless-stopped}
         ports:
             - '${JVB_PORT:-10000}:${JVB_PORT:-10000}/udp'
-            - '127.0.0.1:${JVB_COLIBRI_PORT:-8080}:8080'
+            - '9090:9090'
+        expose:
+            - ${JVB_COLIBRI_PORT:-8080}
         volumes:
             - ${CONFIG}/jvb:/config:Z
         environment:
-            - AUTOSCALER_SIDECAR_KEY_FILE=/etc/jitsi/autoscaler-sidecar/asap.key
-            - AUTOSCALER_SIDECAR_KEY_ID
+            - ASAP_JWT_AUD=${ASAP_JWT_AUD:-jitsi-autoscaler}
+            - ASAP_JWT_ISS
             - AUTOSCALER_SIDECAR_GROUP_NAME
             - AUTOSCALER_SIDECAR_HOST_ID
             - AUTOSCALER_SIDECAR_INSTANCE_ID
+            - AUTOSCALER_SIDECAR_KEY_FILE=/config/keys/asap.key
+            - AUTOSCALER_SIDECAR_KEY_ID=asap
             - AUTOSCALER_SIDECAR_PORT
             - AUTOSCALER_SIDECAR_REGION
             - AUTOSCALER_SIDECAR_SHUTDOWN_POLLING_INTERVAL
             - AUTOSCALER_SIDECAR_STATS_POLLING_INTERVAL
-            - AUTOSCALER_URL=http://autoscaler:3000
-            - DOCKER_HOST_ADDRESS
+            - AUTOSCALER_URL=${AUTOSCALER_URL:-http://${XMPP_SERVER:-autoscaler}:${AUTOSCALER_PORT:-3000}}
+            - COLIBRI_REST_ENABLED=true
             - ENABLE_COLIBRI_WEBSOCKET
             - ENABLE_JVB_XMPP_SERVER
             - ENABLE_OCTO
             - ENABLE_SCTP
             - JVB_ADVERTISE_IPS
             - JVB_ADVERTISE_PRIVATE_CANDIDATES
-            - JVB_AUTH_USER
             - JVB_AUTH_PASSWORD
+            - JVB_AUTH_USER
             - JVB_BREWERY_MUC
             - JVB_DISABLE_STUN
             - JVB_DISABLE_XMPP
             - JVB_INSTANCE_ID
-            - JVB_PORT
-            - JVB_MUC_NICKNAME
-            - JVB_STUN_SERVERS
             - JVB_LOG_FILE
+            - JVB_MUC_NICKNAME
             - JVB_OCTO_BIND_ADDRESS
             - JVB_OCTO_REGION
             - JVB_OCTO_RELAY_ID
+            - JVB_PORT
             - JVB_REQUIRE_VALID_ADDRESS
+            - JVB_STUN_SERVERS
             - JVB_WS_DOMAIN
             - JVB_WS_SERVER_ID
             - JVB_WS_TLS
@@ -442,60 +447,66 @@ services:
             - JVB_XMPP_INTERNAL_MUC_DOMAIN
             - JVB_XMPP_PORT
             - JVB_XMPP_SERVER
+            - LOG_LEVEL
             - PUBLIC_URL
-            - SENTRY_DSN="${JVB_SENTRY_DSN:-0}"
+            - SENTRY_DSN=${JVB_SENTRY_DSN:-0}
             - SENTRY_ENVIRONMENT
             - SENTRY_RELEASE
-            - COLIBRI_REST_ENABLED=true
             - SHUTDOWN_REST_ENABLED
             - TZ
             - VIDEOBRIDGE_MAX_MEMORY
-            - XMPP_AUTH_DOMAIN
-            - XMPP_INTERNAL_MUC_DOMAIN
-            - XMPP_SERVER
+            - XMPP_AUTH_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+auth.}${XMPP_DOMAIN:-auth.meet.jitsi}}
+            - XMPP_INTERNAL_MUC_DOMAIN=${XMPP_AUTH_DOMAIN:-${XMPP_DOMAIN:+internal-muc.}${XMPP_DOMAIN:-internal-muc.meet.jitsi}}
             - XMPP_PORT
-        depends_on:
-            - prosody
-            - autoscaler
+            - XMPP_SERVER=${XMPP_SERVER:-prosody}
         networks:
             meet.jitsi:
 
     redis:
-        image: "redis:alpine"
-        command: redis-server /usr/local/etc/redis/redis.conf --requirepass "${REDIS_PASSWORD}"
-        ports:
-            - '6379:6379'
+        image: redis:alpine
+        command: redis-server --requirepass "${REDIS_PASSWORD}" --port ${REDIS_PORT:-6379} --protected-mode yes
+        expose:
+            - '${REDIS_PORT:-6379}'
         volumes:
             - ${CONFIG}/redis/data:/var/lib/redis:Z
-            - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:Z
         networks:
             meet.jitsi:
 
     autoscaler:
         image: jitsi/autoscaler:latest
         ports:
-            - "3000:3000"
+            - '${AUTOSCALER_PORT:-3000}:${AUTOSCALER_PORT:-3000}'
         environment:
-            - LOG_LEVEL=debug
+            - LOG_LEVEL
+            - DRY_RUN
             - REDIS_PASSWORD
             - REDIS_HOST=redis
-            - REDIS_PORT=6379
+            - REDIS_PORT=${REDIS_PORT:-6379}
             - REDIS_TLS=false
-            - PORT=3000
-            - PROTECTED_API=false
-            - ASAP_PUB_KEY_BASE_URL=null
-            - ASAP_JWT_AUD=jitsi-autoscaler
-            - ASAP_JWT_ACCEPTED_HOOK_ISS=jitsi-autoscaler-sidecar
+            - PORT=${AUTOSCALER_PORT:-3000}
+            - PROTECTED_API
+            - ASAP_JWT_ACCEPTED_HOOK_ISS=${ASAP_JWT_ISS:-jitsi-autoscaler-sidecar}
+            - ASAP_JWT_AUD=${ASAP_JWT_AUD:-jitsi-autoscaler}
+            - ASAP_PUB_KEY_BASE_URL=http://pubkeyserver/keys/
             - GROUP_CONFIG_FILE=/config/groups.json
             - CLOUD_PROVIDER=custom
-            - DRY_RUN=true
             # Config values to make autoscaler starting
-            - DEFAULT_INSTANCE_CONFIGURATION_ID=ocid1.instanceconfiguration.oc1.phx.demo
-            - DEFAULT_COMPARTMENT_ID=ocid1.compartment.oc1.demo
+            - DEFAULT_INSTANCE_CONFIGURATION_ID=${DEFAULT_INSTANCE_CONFIGURATION_ID:-id}
+            - DEFAULT_COMPARTMENT_ID=${DEFAULT_COMPARTMENT_ID:-id}
         volumes:
             - ${CONFIG}/autoscaler:/config:Z
         depends_on:
+            - pubkeyserver
             - redis
+        networks:
+            meet.jitsi:
+
+    pubkeyserver:
+        image: nginx
+        expose:
+            - '80'
+        volumes:
+            - ${CONFIG}/pubkeyserver/html:/usr/share/nginx/html:Z
         networks:
             meet.jitsi:
 
